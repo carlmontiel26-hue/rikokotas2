@@ -78,6 +78,14 @@ export default function App(){
     return list.sort((a,b)=>(a.orden||0)-(b.orden||0));
   },[productos,categoria,search]);
 
+  const formatPrecio = (precio: string) => {
+    if(!precio) return "";
+    const p = precio.trim();
+    if(p.includes("€") || p.includes("$")) return p;
+    // Si es solo numero, añadir €
+    return `${p}€`;
+  };
+
   const fileToBase64 = (file: File): Promise<string> => new Promise((res, rej)=>{
     const r = new FileReader(); r.onload=()=>res(r.result as string); r.onerror=rej; r.readAsDataURL(file);
   });
@@ -131,7 +139,6 @@ export default function App(){
     await fetchAll();
   };
 
-  // CARRITO
   const addToCart = (product: Product, talla: string)=>{
     setCart(prev=>{
       const existing = prev.find(c=>c.product.id===product.id && c.talla===talla);
@@ -149,7 +156,7 @@ export default function App(){
   const cartWhatsAppText = ()=>{
     let txt = `Hola! Quiero reservar estos productos de LAS RIKOKOTAS:\n\n`;
     cart.forEach(c=>{
-      txt += `• ${c.product.nombre} - Talla ${c.talla} - ${c.product.precio} x${c.qty}\n`;
+      txt += `• ${c.product.nombre} - Talla ${c.talla} - ${formatPrecio(c.product.precio)} x${c.qty}\n`;
     });
     txt += `\nTotal productos: ${cartCount}\nDirección: ${config.direccion}`;
     return encodeURIComponent(txt);
@@ -160,31 +167,35 @@ export default function App(){
   return (
     <div className="min-h-screen bg-[#FFFBFB] text-zinc-900">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;700&display=swap'); .serif{font-family:"Instrument Serif",serif} body{font-family:"DM Sans"}`}</style>
-      <div className="w-full bg-zinc-900 text-white text-[11px]"><div className="max-w-[1280px] mx-auto px-4 h-8 flex justify-between items-center"><span>📍 {config.direccion}</span><span className="hidden md:inline">WhatsApp {config.whatsapp_display}</span></div></div>
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b"><div className="max-w-[1280px] mx-auto px-4 h-[72px] flex items-center justify-between"><a href="#" className="flex items-center gap-3"><img src={config.logo_url} className="h-14 w-14 rounded-full border shadow object-cover" /><div><div className="serif font-bold text-[20px]">LAS RIKOKOTAS II S.L.</div><div className="text-[10px] tracking-widest text-zinc-500 font-bold">BOUTIQUE • LA CARLOTA</div></div></a><div className="flex gap-2 items-center"><div className="hidden md:flex items-center bg-zinc-100 rounded-full px-3 h-9"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent outline-none text-[13px] w-32 md:w-48" />🔍</div><a href="#catalogo" className="h-9 px-4 rounded-full bg-pink-600 text-white text-sm font-bold flex items-center">Catálogo</a><button onClick={()=>setCartOpen(true)} className="h-9 w-9 rounded-full bg-zinc-900 text-white flex items-center justify-center relative">🛒{cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">{cartCount}</span>}</button></div></div></header>
+      
+      {/* CINTA PREMIUM FIJA - CENTRADA EN MOVIL - NO SE ESCONDE */}
+      <div className="w-full bg-zinc-900 text-white text-[11px] sticky top-0 z-[70] shadow-sm">
+        <div className="max-w-[1280px] mx-auto px-4 h-9 md:h-8 flex justify-center md:justify-between items-center text-center gap-2">
+          <span className="truncate">📍 {config.direccion}</span>
+          <span className="hidden md:inline-flex shrink-0">WhatsApp {config.whatsapp_display} • Boutique La Carlota</span>
+        </div>
+      </div>
+      
+      <header className="sticky top-9 md:top-8 z-30 bg-white/95 backdrop-blur border-b">
+        <div className="max-w-[1280px] mx-auto px-4 h-[72px] flex items-center justify-between">
+          <a href="#" className="flex items-center gap-3"><img src={config.logo_url} className="h-14 w-14 rounded-full border shadow object-cover" /><div><div className="serif font-bold text-[20px]">LAS RIKOKOTAS II S.L.</div><div className="text-[10px] tracking-widest text-zinc-500 font-bold">BOUTIQUE • LA CARLOTA</div></div></a>
+          <div className="flex gap-2 items-center"><div className="hidden md:flex items-center bg-zinc-100 rounded-full px-3 h-9"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent outline-none text-[13px] w-32 md:w-48" />🔍</div><a href="#catalogo" className="h-9 px-4 rounded-full bg-pink-600 text-white text-sm font-bold flex items-center">Catálogo</a><button onClick={()=>setCartOpen(true)} className="h-9 w-9 rounded-full bg-zinc-900 text-white flex items-center justify-center relative">🛒{cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">{cartCount}</span>}</button></div>
+        </div>
+      </header>
 
       {!isAdminRoute ? (
         <>
           <section className="max-w-[1280px] mx-auto px-4 pt-6">
             <div className="md:hidden mb-3 flex items-center bg-white border rounded-full px-4 h-11"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar fajas, vestidos, bolsos..." className="flex-1 bg-transparent outline-none text-[14px]" />🔍</div>
             <div className="grid grid-cols-12 gap-4">
-              {/* PORTADA 100% COLOR ORIGINAL + NO SE CORTA EN MOVIL */}
+              {/* PORTADA 100% COLOR - SIN LOGO REPETIDO NI BOTONES ANUNCIOS - SOLO TEXTO EDITABLE */}
               <div className="col-span-12 lg:col-span-8 rounded-[28px] border shadow relative overflow-hidden bg-white">
                 {config.hero_imagen ? (
                   <div className="relative w-full">
-                    {/* Imagen 100% color original, sin opacidad blanca */}
                     <img src={config.hero_imagen} className="w-full h-auto md:h-[440px] md:object-cover object-contain max-h-[75vh] md:max-h-none" alt="Portada" />
-                    {/* Degradado solo para que el texto se lea, no opaca la imagen completa */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
-                    {/* Contenido encima, no recortado en movil */}
                     <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 text-white">
-                      <div className="flex items-center gap-3 mb-3">
-                        <img src={config.logo_url} className="h-12 w-12 md:h-16 md:w-16 rounded-full border-2 border-white shadow-lg object-cover bg-white" />
-                        <div className="flex gap-2">
-                          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-white text-zinc-900">BOUTIQUE OFICIAL</span>
-                          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-pink-600 text-white hidden md:inline-flex">FAJAS MAXICOLY</span>
-                        </div>
-                      </div>
+                      {/* LOGO Y BOTONES BOUTIQUE OFICIAL / FAJAS QUITADOS COMO PEDISTE */}
                       <h1 className="serif text-[28px] md:text-[44px] leading-[0.95] font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{config.hero_titulo}</h1>
                       <p className="mt-2 text-[13px] md:text-[15px] text-white/90 max-w-[50ch] drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{config.hero_subtitulo}</p>
                       <div className="mt-4 flex gap-2">
@@ -195,8 +206,8 @@ export default function App(){
                   </div>
                 ) : (
                   <div className="p-6 md:p-8 min-h-[360px] md:min-h-[440px] flex flex-col justify-center">
-                    <div className="flex items-center gap-4 mb-4"><img src={config.logo_url} className="h-20 w-20 rounded-full border-2 border-white shadow-lg object-cover bg-white" /><div><div className="text-[11px] font-bold px-3 py-1 rounded-full bg-zinc-900 text-white inline-flex">BOUTIQUE OFICIAL</div><div className="mt-1 text-[11px] font-bold px-3 py-1 rounded-full bg-pink-600 text-white inline-flex">FAJAS MAXICOLY</div></div></div>
-                    <h1 className="serif text-[34px] md:text-[46px] leading-[0.9] font-bold">{config.hero_titulo.split(" ").slice(0,-2).join(" ")} <span className="text-pink-600">{config.hero_titulo.split(" ").slice(-2).join(" ")}</span></h1>
+                    {/* TAMBIEN QUITADO LOGO REPETIDO AQUI */}
+                    <h1 className="serif text-[34px] md:text-[46px] leading-[0.9] font-bold">{config.hero_titulo}</h1>
                     <p className="mt-3 text-[14px] text-zinc-700 max-w-[50ch] font-medium">{config.hero_subtitulo}</p>
                     <div className="mt-5 flex gap-2"><a href="#catalogo" className="h-11 px-6 rounded-full bg-zinc-900 text-white text-sm font-bold flex items-center">Comprar ahora →</a><a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="h-11 px-6 rounded-full bg-white border text-sm font-bold flex items-center shadow">WhatsApp</a></div>
                   </div>
@@ -220,13 +231,12 @@ export default function App(){
               {filtrados.map(p=>(
                 <div key={p.id} onClick={()=>setPreview(p)} className="group bg-white border rounded-[18px] overflow-hidden cursor-pointer hover:border-zinc-300">
                   <div className="aspect-[3/4] bg-zinc-50 relative overflow-hidden"><img src={p.imagen} className="w-full h-full object-cover group-hover:scale-105 transition" /><div className="absolute top-2 left-2 text-[10px] font-bold bg-white/90 px-2 py-1 rounded-full shadow">STOCK {p.stock}</div>{p.stock===0 && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-[12px]">AGOTADO</div>}<div className="absolute top-2 right-2 text-[9px] font-bold bg-zinc-900 text-white px-2 py-1 rounded-full">{p.categoria}</div></div>
-                  <div className="p-3"><div className="text-[13px] font-bold line-clamp-2 min-h-[2.6em]">{p.nombre}</div><div className="mt-1 flex justify-between items-center"><span className="font-bold">{p.precio}</span><span className="text-[10px] text-zinc-400">{p.talla}</span></div><div className="mt-2 h-8 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center">Ver detalles</div></div>
+                  <div className="p-3"><div className="text-[13px] font-bold line-clamp-2 min-h-[2.6em]">{p.nombre}</div><div className="mt-1 flex justify-between items-center"><span className="font-bold">{formatPrecio(p.precio)}</span><span className="text-[10px] text-zinc-400">{p.talla}</span></div><div className="mt-2 h-8 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center">Ver detalles</div></div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* MODAL PRODUCTO CON TALLAS + AÑADIR AL CARRITO */}
           {preview && <div className="fixed inset-0 z-50 bg-black/60 flex items-end md:items-center justify-center p-0 md:p-4" onClick={()=>setPreview(null)}>
             <div className="bg-white rounded-t-[24px] md:rounded-[24px] w-full md:max-w-[460px] max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
               <div className="relative w-full flex-shrink-0 bg-zinc-50">
@@ -236,7 +246,7 @@ export default function App(){
               <div className="p-5 overflow-y-auto">
                 <div className="font-bold text-[18px] leading-tight">{preview.nombre}</div>
                 <div className="text-[12px] text-zinc-500 mt-1">{preview.categoria} • STOCK {preview.stock} uds</div>
-                <div className="text-[22px] font-bold mt-2">{preview.precio}</div>
+                <div className="text-[22px] font-bold mt-2">{formatPrecio(preview.precio)}</div>
                 <div className="text-[13px] text-zinc-600 mt-2">{preview.descripcion}</div>
                 <div className="mt-4">
                   <div className="text-[12px] font-bold tracking-wide">TALLA: <span className="text-pink-600">{selectedTalla}</span></div>
@@ -249,19 +259,17 @@ export default function App(){
                 <div className="mt-5 flex gap-2 pb-[env(safe-area-inset-bottom)]">
                   <button onClick={()=>setPreview(null)} className="h-12 px-4 rounded-full border font-bold bg-white">Cerrar</button>
                   <button onClick={()=>addToCart(preview, selectedTalla)} className="flex-[1.2] h-12 rounded-full bg-white border border-zinc-900 text-zinc-900 font-bold text-[14px]">Añadir al carrito</button>
-                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola! Me interesa ${preview.nombre} - Talla ${selectedTalla} - ${preview.precio}`)}`} className="flex-[1] h-12 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[13px]">WhatsApp →</a>
+                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola! Me interesa ${preview.nombre} - Talla ${selectedTalla} - ${formatPrecio(preview.precio)}`)}`} className="flex-[1] h-12 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[13px]">WhatsApp →</a>
                 </div>
               </div>
             </div>
           </div>}
 
-          {/* CARRITO FLOTANTE PEQUEÑO */}
           <button onClick={()=>setCartOpen(true)} className="fixed bottom-5 right-4 md:bottom-6 md:right-6 z-40 h-14 w-14 rounded-full bg-zinc-900 text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] flex items-center justify-center text-[20px] hover:scale-105 transition">
             🛒
             {cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[11px] font-bold min-h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center">{cartCount}</span>}
           </button>
 
-          {/* DRAWER CARRITO */}
           {cartOpen && (
             <div className="fixed inset-0 z-[60] flex justify-end">
               <div className="flex-1 bg-black/40" onClick={()=>setCartOpen(false)} />
@@ -273,7 +281,7 @@ export default function App(){
                       <img src={item.product.imagen} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <div className="text-[12px] font-bold leading-tight truncate">{item.product.nombre}</div>
-                        <div className="text-[11px] text-zinc-500">Talla {item.talla} • {item.product.precio}</div>
+                        <div className="text-[11px] text-zinc-500">Talla {item.talla} • {formatPrecio(item.product.precio)}</div>
                         <div className="mt-1.5 flex items-center gap-2">
                           <button onClick={()=>updateQty(item.id,-1)} className="h-6 w-6 rounded-full border flex items-center justify-center text-[12px]">−</button>
                           <span className="text-[12px] font-bold w-4 text-center">{item.qty}</span>
@@ -306,9 +314,9 @@ export default function App(){
               <div className="col-span-12 lg:col-span-5">
                 <div className="bg-white rounded-[20px] border p-5">
                   <h3 className="font-bold text-[16px]">Portada - Imagen y texto</h3>
-                  <p className="text-[11px] text-zinc-500">La imagen ahora se ve 100% en su color original</p>
+                  <p className="text-[11px] text-zinc-500">Logo de portada quitado, solo texto editable</p>
                   <div className="mt-3 space-y-3">
-                    <div><label className="text-[11px] font-bold">LOGO</label><div className="flex gap-2 mt-1"><button onClick={()=>logoFileRef.current?.click()} className="h-10 px-3 rounded-xl border bg-zinc-50 text-[12px] font-bold">📁 Subir logo local</button></div><input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} /><input value={configForm.logo_url.startsWith('data:')?'[Imagen local]':configForm.logo_url} onChange={e=>setConfigForm({...configForm, logo_url:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm" />{configForm.logo_url && <img src={configForm.logo_url} className="mt-2 w-16 h-16 rounded-full object-cover border" />}</div>
+                    <div><label className="text-[11px] font-bold">LOGO (header)</label><div className="flex gap-2 mt-1"><button onClick={()=>logoFileRef.current?.click()} className="h-10 px-3 rounded-xl border bg-zinc-50 text-[12px] font-bold">📁 Subir logo local</button></div><input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} /><input value={configForm.logo_url.startsWith('data:')?'[Imagen local]':configForm.logo_url} onChange={e=>setConfigForm({...configForm, logo_url:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm" />{configForm.logo_url && <img src={configForm.logo_url} className="mt-2 w-16 h-16 rounded-full object-cover border" />}</div>
                     <div><label className="text-[11px] font-bold">IMAGEN DE FONDO PORTADA - 100% COLOR</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir imagen local</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar fondo y volver a blanco</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
                     <input value={configForm.hero_titulo} onChange={e=>setConfigForm({...configForm, hero_titulo:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" />
                     <textarea value={configForm.hero_subtitulo} onChange={e=>setConfigForm({...configForm, hero_subtitulo:e.target.value})} rows={2} className="w-full border rounded-xl p-2 text-sm" />
@@ -320,7 +328,7 @@ export default function App(){
                   <h3 className="font-bold mt-8">{editingId?"Editar producto":"Añadir producto"}</h3>
                   <div className="mt-3 space-y-2">
                     <input value={form.nombre} onChange={e=>setForm({...form, nombre:e.target.value})} placeholder="Nombre" className="w-full h-11 border rounded-xl px-4 text-sm" />
-                    <div className="grid grid-cols-2 gap-2"><input value={form.precio} onChange={e=>setForm({...form, precio:e.target.value})} placeholder="Precio" className="h-11 border rounded-xl px-3 text-sm" /><select value={form.categoria} onChange={e=>setForm({...form, categoria:e.target.value})} className="h-11 border rounded-xl px-3 text-sm bg-white">{CATEGORIES.filter(c=>c!=="TODOS").map(c=><option key={c}>{c}</option>)}</select></div>
+                    <div className="grid grid-cols-2 gap-2"><input value={form.precio} onChange={e=>setForm({...form, precio:e.target.value})} placeholder="Precio ej: 50 o 50€" className="h-11 border rounded-xl px-3 text-sm" /><select value={form.categoria} onChange={e=>setForm({...form, categoria:e.target.value})} className="h-11 border rounded-xl px-3 text-sm bg-white">{CATEGORIES.filter(c=>c!=="TODOS").map(c=><option key={c}>{c}</option>)}</select></div>
                     <div className="grid grid-cols-2 gap-2"><input value={form.talla} onChange={e=>setForm({...form, talla:e.target.value})} placeholder="Tallas S,M,L" className="h-11 border rounded-xl px-3 text-sm" /><input type="number" value={form.stock} onChange={e=>setForm({...form, stock:e.target.value})} className="h-11 border rounded-xl px-3 text-sm" /></div>
                     <div className="border-2 border-dashed rounded-xl p-3 bg-zinc-50"><div className="flex gap-2"><button onClick={()=>productFileRef.current?.click()} className="h-11 px-4 rounded-full bg-zinc-900 text-white text-[13px] font-bold">📁 Imagen local</button><input value={form.imagen.startsWith('data:')?'[Local]':form.imagen} onChange={e=>setForm({...form, imagen:e.target.value})} placeholder="O URL" className="flex-1 h-11 border rounded-xl px-3 text-sm" /></div><input ref={productFileRef} type="file" accept="image/*" className="hidden" onChange={handleProductFile} /></div>
                     {form.imagen && <img src={form.imagen} className="w-full h-48 object-contain rounded-xl border bg-white" />}
@@ -329,7 +337,7 @@ export default function App(){
                   </div>
                 </div>
               </div>
-              <div className="col-span-12 lg:col-span-7"><div className="flex justify-between items-center"><h3 className="font-bold">Productos ({productos.length})</h3></div><div className="mt-4 space-y-2">{[...productos].sort((a,b)=>(a.orden||0)-(b.orden||0)).map((p,idx)=>(<div key={p.id} className="bg-white rounded-[16px] border p-3 flex gap-3 items-center"><img src={p.imagen} className="w-20 h-20 rounded-xl object-cover" /><div className="flex-1"><div className="text-[12px] font-bold">{p.nombre}</div><div className="text-[11px] text-zinc-500">{p.categoria} • {p.precio} • STOCK {p.stock}</div><div className="mt-2 flex gap-1"><button onClick={()=>{setForm({nombre:p.nombre,precio:p.precio,categoria:p.categoria,talla:p.talla,stock:p.stock,descripcion:p.descripcion,imagen:p.imagen,destacado:!!p.destacado}); setEditingId(p.id)}} className="h-7 px-3 rounded-full bg-zinc-900 text-white text-[11px]">Editar</button><button onClick={()=>deleteProd(p.id)} className="h-7 px-3 rounded-full bg-zinc-100 text-[11px]">Borrar</button></div></div><div className="flex flex-col gap-1"><button onClick={()=>moveProduct(p.id,'up')} disabled={idx===0} className="h-7 w-7 rounded-full bg-white border flex items-center justify-center disabled:opacity-30">↑</button><button onClick={()=>moveProduct(p.id,'down')} disabled={idx===productos.length-1} className="h-7 w-7 rounded-full bg-white border flex items-center justify-center disabled:opacity-30">↓</button></div></div>))}</div></div>
+              <div className="col-span-12 lg:col-span-7"><div className="flex justify-between items-center"><h3 className="font-bold">Productos ({productos.length})</h3></div><div className="mt-4 space-y-2">{[...productos].sort((a,b)=>(a.orden||0)-(b.orden||0)).map((p,idx)=>(<div key={p.id} className="bg-white rounded-[16px] border p-3 flex gap-3 items-center"><img src={p.imagen} className="w-20 h-20 rounded-xl object-cover" /><div className="flex-1"><div className="text-[12px] font-bold">{p.nombre}</div><div className="text-[11px] text-zinc-500">{p.categoria} • {formatPrecio(p.precio)} • STOCK {p.stock}</div><div className="mt-2 flex gap-1"><button onClick={()=>{setForm({nombre:p.nombre,precio:p.precio,categoria:p.categoria,talla:p.talla,stock:p.stock,descripcion:p.descripcion,imagen:p.imagen,destacado:!!p.destacado}); setEditingId(p.id)}} className="h-7 px-3 rounded-full bg-zinc-900 text-white text-[11px]">Editar</button><button onClick={()=>deleteProd(p.id)} className="h-7 px-3 rounded-full bg-zinc-100 text-[11px]">Borrar</button></div></div><div className="flex flex-col gap-1"><button onClick={()=>moveProduct(p.id,'up')} disabled={idx===0} className="h-7 w-7 rounded-full bg-white border flex items-center justify-center disabled:opacity-30">↑</button><button onClick={()=>moveProduct(p.id,'down')} disabled={idx===productos.length-1} className="h-7 w-7 rounded-full bg-white border flex items-center justify-center disabled:opacity-30">↓</button></div></div>))}</div></div>
             </div>
           )}
         </div>
