@@ -23,8 +23,8 @@ const DEFAULT_CONFIG: StoreConfig = {
   logo_url: LOGO_URL_DEFAULT,
   direccion: "Calle Ramón y Cajal 24, C.P 14100, La Carlota Córdoba.",
   whatsapp_display: "603 472 511",
-  hero_titulo: "Moda, brillo y figura al instante.",
-  hero_subtitulo: "Tienda de confianza en Calle Ramón y Cajal 24.",
+  hero_titulo: "",
+  hero_subtitulo: "",
   banner_maxicoly: "Auténticas fajas colombianas de la Línea Maxicoly para España",
   hero_imagen: "",
 };
@@ -61,7 +61,7 @@ export default function App(){
     }catch(e){} finally{ setLoading(false); }
   };
   useEffect(()=>{ fetchAll(); },[]);
-  useEffect(()=>{ if(preview){ const tallas = preview.talla.split(',').map((t:string)=>t.trim()).filter(Boolean); setSelectedTalla(tallas[0]||""); } },[preview]);
+  useEffect(()=>{ if(preview){ const tallas = preview.talla.split(',').map(t=>t.trim()).filter(Boolean); setSelectedTalla(tallas[0]||""); } },[preview]);
 
   const filtrados = useMemo(()=>{
     let list = categoria==="TODOS"?productos:productos.filter(p=>p.categoria===categoria);
@@ -75,38 +75,17 @@ export default function App(){
     if(p.includes("€") || p.includes("$")) return p;
     return `${p}€`;
   };
-
   const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+    return new Promise((res, rej)=>{
+      const r = new FileReader();
+      r.onload=()=>res(r.result as string);
+      r.onerror=rej;
+      r.readAsDataURL(file);
     });
   };
-
-  const handleProductFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if(!f) return;
-    if(f.size > 2*1024*1024){ alert("Max 2MB"); return; }
-    const b64 = await fileToBase64(f);
-    setForm((x:any)=>({...x, imagen: b64}));
-  };
-
-  const handleHeroFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if(!f) return;
-    if(f.size > 3*1024*1024){ alert("Max 3MB"); return; }
-    const b64 = await fileToBase64(f);
-    setConfigForm((x:any)=>({...x, hero_imagen: b64}));
-  };
-
-  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if(!f) return;
-    const b64 = await fileToBase64(f);
-    setConfigForm((x:any)=>({...x, logo_url: b64}));
-  };
+  const handleProductFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>2*1024*1024){ alert("Max 2MB"); return;} setForm((x:any)=>({...x, imagen: await fileToBase64(f)})); };
+  const handleHeroFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>3*1024*1024){ alert("Max 3MB"); return;} setConfigForm((x:any)=>({...x, hero_imagen: await fileToBase64(f)})); };
+  const handleLogoFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; setConfigForm((x:any)=>({...x, logo_url: await fileToBase64(f)})); };
 
   const handleSaveProduct = async()=>{
     if(!form.nombre.trim()||!form.precio.trim()||!form.imagen.trim()){ alert("Nombre, precio e imagen obligatorios"); return; }
@@ -191,9 +170,10 @@ export default function App(){
                     <img src={config.hero_imagen} className="w-full h-auto object-contain md:object-cover md:h-[420px] max-h-[70vh] md:max-h-none" alt="Portada Boutique" />
                   </a>
                 ) : (
-                  <div className="w-full h-[220px] md:h-[420px] flex items-center justify-center bg-zinc-50 text-zinc-400 text-[13px]">Sube tu foto de portada desde #admin - Diseño 100% tuyo</div>
+                  <div className="w-full h-[220px] md:h-[420px] flex items-center justify-center bg-zinc-50 text-zinc-400 text-[13px]">Sube tu foto de portada desde #admin</div>
                 )}
               </div>
+
               <div className="col-span-12 lg:col-span-4 rounded-[28px] bg-gradient-to-br from-zinc-900 via-pink-900 to-pink-600 p-6 text-white relative overflow-hidden">
                 <div className="text-[10px] tracking-widest font-bold bg-white text-zinc-900 px-2.5 py-1 rounded-full inline-flex">MAXICOLY COLOMBIA</div>
                 <h2 className="serif mt-3 text-[26px] leading-[0.95] font-bold">{config.banner_maxicoly}</h2>
@@ -245,13 +225,22 @@ export default function App(){
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-5">
                 <div className="bg-white rounded-[20px] border p-5">
-                  <h3 className="font-bold text-[16px]">Portada - Solo foto banner</h3>
+                  <h3 className="font-bold text-[16px]">Portada y Banner Maxicoly</h3>
+                  <p className="text-[11px] text-zinc-500">Edita tu banner de portada y el texto del banner Maxicoly</p>
                   <div className="mt-3 space-y-3">
                     <div><label className="text-[11px] font-bold">LOGO (header)</label><div className="flex gap-2 mt-1"><button onClick={()=>logoFileRef.current?.click()} className="h-10 px-3 rounded-xl border bg-zinc-50 text-[12px] font-bold">📁 Subir logo local</button></div><input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} /><input value={configForm.logo_url.startsWith('data:')?'[Imagen local]':configForm.logo_url} onChange={e=>setConfigForm({...configForm, logo_url:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm" />{configForm.logo_url && <img src={configForm.logo_url} className="mt-2 w-16 h-16 rounded-full object-cover border" />}</div>
-                    <div><label className="text-[11px] font-bold">FOTO DE PORTADA - SOLO IMAGEN</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir banner</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar foto</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
+                    
+                    <div><label className="text-[11px] font-bold">FOTO DE PORTADA - SOLO IMAGEN (sin texto encima)</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir banner</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar foto</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
+
+                    <div className="bg-pink-50 border border-pink-200 rounded-xl p-3">
+                      <label className="text-[11px] font-bold text-pink-900">TEXTO BANNER MAXICOLY (editable)</label>
+                      <textarea value={configForm.banner_maxicoly} onChange={e=>setConfigForm({...configForm, banner_maxicoly:e.target.value})} placeholder="Auténticas fajas colombianas de la Línea Maxicoly para España" rows={2} className="mt-1 w-full border rounded-xl p-2 text-sm bg-white" />
+                      <p className="text-[10px] text-pink-700 mt-1">Este es el texto grande del banner morado de la derecha</p>
+                    </div>
+
                     <input value={configForm.direccion} onChange={e=>setConfigForm({...configForm, direccion:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" placeholder="Dirección" />
                     <input value={configForm.whatsapp_display} onChange={e=>setConfigForm({...configForm, whatsapp_display:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" placeholder="WhatsApp" />
-                    <button onClick={handleSaveConfig} className="w-full h-11 rounded-full bg-pink-600 text-white font-bold">{saving?"Guardando...":"Guardar portada"}</button>
+                    <button onClick={handleSaveConfig} className="w-full h-11 rounded-full bg-pink-600 text-white font-bold">{saving?"Guardando...":"Guardar portada y banner Maxicoly"}</button>
                   </div>
                   <h3 className="font-bold mt-8">{editingId?"Editar producto":"Añadir producto"}</h3>
                   <div className="mt-3 space-y-2">
