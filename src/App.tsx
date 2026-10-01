@@ -83,9 +83,21 @@ export default function App(){
       r.readAsDataURL(file);
     });
   };
-  const handleProductFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>2*1024*1024){ alert("Max 2MB"); return;} setForm((x:any)=>({...x, imagen: await fileToBase64(f)})); };
-  const handleHeroFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>3*1024*1024){ alert("Max 3MB"); return;} setConfigForm((x:any)=>({...x, hero_imagen: await fileToBase64(f)})); };
-  const handleLogoFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{ const f=e.target.files?.[0]; if(!f) return; setConfigForm((x:any)=>({...x, logo_url: await fileToBase64(f)})); };
+  const handleProductFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{
+    const f=e.target.files?.[0]; if(!f) return; if(f.size>2*1024*1024){ alert("Max 2MB"); return;}
+    const b64 = await fileToBase64(f);
+    setForm((x:any)=>({...x, imagen: b64}));
+  };
+  const handleHeroFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{
+    const f=e.target.files?.[0]; if(!f) return; if(f.size>3*1024*1024){ alert("Max 3MB"); return;}
+    const b64 = await fileToBase64(f);
+    setConfigForm((x:any)=>({...x, hero_imagen: b64}));
+  };
+  const handleLogoFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    const b64 = await fileToBase64(f);
+    setConfigForm((x:any)=>({...x, logo_url: b64}));
+  };
 
   const handleSaveProduct = async()=>{
     if(!form.nombre.trim()||!form.precio.trim()||!form.imagen.trim()){ alert("Nombre, precio e imagen obligatorios"); return; }
