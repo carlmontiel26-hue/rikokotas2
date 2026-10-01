@@ -82,7 +82,6 @@ export default function App(){
     if(!precio) return "";
     const p = precio.trim();
     if(p.includes("€") || p.includes("$")) return p;
-    // Si es solo numero, añadir €
     return `${p}€`;
   };
 
@@ -168,15 +167,7 @@ export default function App(){
     <div className="min-h-screen bg-[#FFFBFB] text-zinc-900">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;700&display=swap'); .serif{font-family:"Instrument Serif",serif} body{font-family:"DM Sans"}`}</style>
       
-      {/* CINTA PREMIUM FIJA - CENTRADA EN MOVIL - NO SE ESCONDE */}
-      <div className="w-full bg-zinc-900 text-white text-[11px] sticky top-0 z-[70] shadow-sm">
-        <div className="max-w-[1280px] mx-auto px-4 h-9 md:h-8 flex justify-center md:justify-between items-center text-center gap-2">
-          <span className="truncate">📍 {config.direccion}</span>
-          <span className="hidden md:inline-flex shrink-0">WhatsApp {config.whatsapp_display} • Boutique La Carlota</span>
-        </div>
-      </div>
-      
-      <header className="sticky top-9 md:top-8 z-30 bg-white/95 backdrop-blur border-b">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b">
         <div className="max-w-[1280px] mx-auto px-4 h-[72px] flex items-center justify-between">
           <a href="#" className="flex items-center gap-3"><img src={config.logo_url} className="h-14 w-14 rounded-full border shadow object-cover" /><div><div className="serif font-bold text-[20px]">LAS RIKOKOTAS II S.L.</div><div className="text-[10px] tracking-widest text-zinc-500 font-bold">BOUTIQUE • LA CARLOTA</div></div></a>
           <div className="flex gap-2 items-center"><div className="hidden md:flex items-center bg-zinc-100 rounded-full px-3 h-9"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent outline-none text-[13px] w-32 md:w-48" />🔍</div><a href="#catalogo" className="h-9 px-4 rounded-full bg-pink-600 text-white text-sm font-bold flex items-center">Catálogo</a><button onClick={()=>setCartOpen(true)} className="h-9 w-9 rounded-full bg-zinc-900 text-white flex items-center justify-center relative">🛒{cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">{cartCount}</span>}</button></div>
@@ -188,14 +179,12 @@ export default function App(){
           <section className="max-w-[1280px] mx-auto px-4 pt-6">
             <div className="md:hidden mb-3 flex items-center bg-white border rounded-full px-4 h-11"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar fajas, vestidos, bolsos..." className="flex-1 bg-transparent outline-none text-[14px]" />🔍</div>
             <div className="grid grid-cols-12 gap-4">
-              {/* PORTADA 100% COLOR - SIN LOGO REPETIDO NI BOTONES ANUNCIOS - SOLO TEXTO EDITABLE */}
               <div className="col-span-12 lg:col-span-8 rounded-[28px] border shadow relative overflow-hidden bg-white">
                 {config.hero_imagen ? (
                   <div className="relative w-full">
                     <img src={config.hero_imagen} className="w-full h-auto md:h-[440px] md:object-cover object-contain max-h-[75vh] md:max-h-none" alt="Portada" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 text-white">
-                      {/* LOGO Y BOTONES BOUTIQUE OFICIAL / FAJAS QUITADOS COMO PEDISTE */}
                       <h1 className="serif text-[28px] md:text-[44px] leading-[0.95] font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{config.hero_titulo}</h1>
                       <p className="mt-2 text-[13px] md:text-[15px] text-white/90 max-w-[50ch] drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{config.hero_subtitulo}</p>
                       <div className="mt-4 flex gap-2">
@@ -206,7 +195,6 @@ export default function App(){
                   </div>
                 ) : (
                   <div className="p-6 md:p-8 min-h-[360px] md:min-h-[440px] flex flex-col justify-center">
-                    {/* TAMBIEN QUITADO LOGO REPETIDO AQUI */}
                     <h1 className="serif text-[34px] md:text-[46px] leading-[0.9] font-bold">{config.hero_titulo}</h1>
                     <p className="mt-3 text-[14px] text-zinc-700 max-w-[50ch] font-medium">{config.hero_subtitulo}</p>
                     <div className="mt-5 flex gap-2"><a href="#catalogo" className="h-11 px-6 rounded-full bg-zinc-900 text-white text-sm font-bold flex items-center">Comprar ahora →</a><a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="h-11 px-6 rounded-full bg-white border text-sm font-bold flex items-center shadow">WhatsApp</a></div>
@@ -314,10 +302,9 @@ export default function App(){
               <div className="col-span-12 lg:col-span-5">
                 <div className="bg-white rounded-[20px] border p-5">
                   <h3 className="font-bold text-[16px]">Portada - Imagen y texto</h3>
-                  <p className="text-[11px] text-zinc-500">Logo de portada quitado, solo texto editable</p>
                   <div className="mt-3 space-y-3">
                     <div><label className="text-[11px] font-bold">LOGO (header)</label><div className="flex gap-2 mt-1"><button onClick={()=>logoFileRef.current?.click()} className="h-10 px-3 rounded-xl border bg-zinc-50 text-[12px] font-bold">📁 Subir logo local</button></div><input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} /><input value={configForm.logo_url.startsWith('data:')?'[Imagen local]':configForm.logo_url} onChange={e=>setConfigForm({...configForm, logo_url:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm" />{configForm.logo_url && <img src={configForm.logo_url} className="mt-2 w-16 h-16 rounded-full object-cover border" />}</div>
-                    <div><label className="text-[11px] font-bold">IMAGEN DE FONDO PORTADA - 100% COLOR</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir imagen local</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar fondo y volver a blanco</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
+                    <div><label className="text-[11px] font-bold">IMAGEN DE FONDO PORTADA - 100% COLOR</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir imagen local</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar fondo</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
                     <input value={configForm.hero_titulo} onChange={e=>setConfigForm({...configForm, hero_titulo:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" />
                     <textarea value={configForm.hero_subtitulo} onChange={e=>setConfigForm({...configForm, hero_subtitulo:e.target.value})} rows={2} className="w-full border rounded-xl p-2 text-sm" />
                     <input value={configForm.banner_maxicoly} onChange={e=>setConfigForm({...configForm, banner_maxicoly:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" />
