@@ -17,6 +17,9 @@ interface StoreConfig {
   logo_url: string; direccion: string; whatsapp_display: string;
   hero_titulo: string; hero_subtitulo: string; banner_maxicoly: string; hero_imagen: string;
 }
+interface CartItem {
+  id: string; product: Product; talla: string; qty: number;
+}
 
 const DEFAULT_CONFIG: StoreConfig = {
   logo_url: LOGO_URL_DEFAULT,
@@ -43,6 +46,8 @@ export default function App(){
   const [editingId, setEditingId] = useState<string|null>(null);
   const [saving, setSaving] = useState(false);
   const [configForm, setConfigForm] = useState<StoreConfig>(DEFAULT_CONFIG);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
   const productFileRef = useRef<HTMLInputElement>(null);
   const heroFileRef = useRef<HTMLInputElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
@@ -106,7 +111,6 @@ export default function App(){
       setForm({ nombre:"", precio:"", categoria:"ROPA", talla:"S, M, L", stock:10, descripcion:"", imagen:"", destacado:false }); setEditingId(null); await fetchAll(); alert("✓ Producto guardado");
     }catch(e:any){ alert("Error: "+e.message); } finally{ setSaving(false); }
   };
-
   const handleSaveConfig = async()=>{
     setSaving(true);
     try{
@@ -116,7 +120,6 @@ export default function App(){
       setConfig(configForm); alert("✓ Portada actualizada");
     }catch(e:any){ alert("Error: "+e.message); } finally{ setSaving(false); }
   };
-
   const deleteProd = async(id:string)=>{ if(!confirm("¿Borrar producto?")) return; const { error }=await supabase.from("productos").delete().eq("id",id); if(error) alert(error.message); else await fetchAll(); };
   const moveProduct = async(id:string, dir: 'up'|'down')=>{
     const sorted = [...productos].sort((a,b)=>(a.orden||0)-(b.orden||0));
@@ -128,29 +131,78 @@ export default function App(){
     await fetchAll();
   };
 
+  // CARRITO
+  const addToCart = (product: Product, talla: string)=>{
+    setCart(prev=>{
+      const existing = prev.find(c=>c.product.id===product.id && c.talla===talla);
+      if(existing) return prev.map(c=>c.id===existing.id ? {...c, qty: c.qty+1} : c);
+      return [...prev, { id: Date.now().toString(), product, talla, qty: 1 }];
+    });
+    setPreview(null);
+    setCartOpen(true);
+  };
+  const updateQty = (id:string, delta:number)=>{
+    setCart(prev=> prev.map(c=> c.id===id ? {...c, qty: Math.max(1, c.qty+delta)} : c));
+  };
+  const removeFromCart = (id:string)=> setCart(prev=> prev.filter(c=>c.id!==id));
+  const cartCount = cart.reduce((a,b)=>a+b.qty,0);
+  const cartWhatsAppText = ()=>{
+    let txt = `Hola! Quiero reservar estos productos de LAS RIKOKOTAS:\n\n`;
+    cart.forEach(c=>{
+      txt += `• ${c.product.nombre} - Talla ${c.talla} - ${c.product.precio} x${c.qty}\n`;
+    });
+    txt += `\nTotal productos: ${cartCount}\nDirección: ${config.direccion}`;
+    return encodeURIComponent(txt);
+  };
+
   if(loading) return <div className="min-h-screen flex items-center justify-center font-bold">Cargando...</div>;
 
   return (
     <div className="min-h-screen bg-[#FFFBFB] text-zinc-900">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;700&display=swap'); .serif{font-family:"Instrument Serif",serif} body{font-family:"DM Sans"}`}</style>
       <div className="w-full bg-zinc-900 text-white text-[11px]"><div className="max-w-[1280px] mx-auto px-4 h-8 flex justify-between items-center"><span>📍 {config.direccion}</span><span className="hidden md:inline">WhatsApp {config.whatsapp_display}</span></div></div>
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b"><div className="max-w-[1280px] mx-auto px-4 h-[72px] flex items-center justify-between"><a href="#" className="flex items-center gap-3"><img src={config.logo_url} className="h-14 w-14 rounded-full border shadow object-cover" /><div><div className="serif font-bold text-[20px]">LAS RIKOKOTAS II S.L.</div><div className="text-[10px] tracking-widest text-zinc-500 font-bold">BOUTIQUE • LA CARLOTA</div></div></a><div className="flex gap-2"><div className="hidden md:flex items-center bg-zinc-100 rounded-full px-3 h-9"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent outline-none text-[13px] w-32 md:w-48" />🔍</div><a href="#catalogo" className="h-9 px-4 rounded-full bg-pink-600 text-white text-sm font-bold flex items-center">Catálogo</a></div></div></header>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b"><div className="max-w-[1280px] mx-auto px-4 h-[72px] flex items-center justify-between"><a href="#" className="flex items-center gap-3"><img src={config.logo_url} className="h-14 w-14 rounded-full border shadow object-cover" /><div><div className="serif font-bold text-[20px]">LAS RIKOKOTAS II S.L.</div><div className="text-[10px] tracking-widest text-zinc-500 font-bold">BOUTIQUE • LA CARLOTA</div></div></a><div className="flex gap-2 items-center"><div className="hidden md:flex items-center bg-zinc-100 rounded-full px-3 h-9"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent outline-none text-[13px] w-32 md:w-48" />🔍</div><a href="#catalogo" className="h-9 px-4 rounded-full bg-pink-600 text-white text-sm font-bold flex items-center">Catálogo</a><button onClick={()=>setCartOpen(true)} className="h-9 w-9 rounded-full bg-zinc-900 text-white flex items-center justify-center relative">🛒{cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">{cartCount}</span>}</button></div></div></header>
 
       {!isAdminRoute ? (
         <>
           <section className="max-w-[1280px] mx-auto px-4 pt-6">
             <div className="md:hidden mb-3 flex items-center bg-white border rounded-full px-4 h-11"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar fajas, vestidos, bolsos..." className="flex-1 bg-transparent outline-none text-[14px]" />🔍</div>
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 lg:col-span-8 rounded-[28px] bg-white border p-0 shadow relative overflow-hidden min-h-[380px] flex">
-                {config.hero_imagen && <img src={config.hero_imagen} className="absolute inset-0 w-full h-full object-cover" />}
-                {/* FONDO MENOS TRANSPARENTE - CAMBIO PRINCIPAL 1 */}
-                <div className={`relative z-10 p-6 md:p-8 w-full flex flex-col justify-center ${config.hero_imagen ? 'bg-white/[0.94] md:bg-white/[0.90]' : ''}`}>
-                  <div className="flex items-center gap-4 mb-4"><img src={config.logo_url} className="h-20 w-20 rounded-full border-2 border-white shadow-lg object-cover bg-white" /><div><div className="text-[11px] font-bold px-3 py-1 rounded-full bg-zinc-900 text-white inline-flex">BOUTIQUE OFICIAL</div><div className="mt-1 text-[11px] font-bold px-3 py-1 rounded-full bg-pink-600 text-white inline-flex">FAJAS MAXICOLY</div></div></div>
-                  <h1 className="serif text-[34px] md:text-[46px] leading-[0.9] font-bold">{config.hero_titulo.split(" ").slice(0,-2).join(" ")} <span className="text-pink-600">{config.hero_titulo.split(" ").slice(-2).join(" ")}</span></h1>
-                  <p className="mt-3 text-[14px] text-zinc-700 max-w-[50ch] font-medium">{config.hero_subtitulo}</p>
-                  <div className="mt-5 flex gap-2"><a href="#catalogo" className="h-11 px-6 rounded-full bg-zinc-900 text-white text-sm font-bold flex items-center">Comprar ahora →</a><a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="h-11 px-6 rounded-full bg-white border text-sm font-bold flex items-center shadow">WhatsApp</a></div>
-                </div>
+              {/* PORTADA 100% COLOR ORIGINAL + NO SE CORTA EN MOVIL */}
+              <div className="col-span-12 lg:col-span-8 rounded-[28px] border shadow relative overflow-hidden bg-white">
+                {config.hero_imagen ? (
+                  <div className="relative w-full">
+                    {/* Imagen 100% color original, sin opacidad blanca */}
+                    <img src={config.hero_imagen} className="w-full h-auto md:h-[440px] md:object-cover object-contain max-h-[75vh] md:max-h-none" alt="Portada" />
+                    {/* Degradado solo para que el texto se lea, no opaca la imagen completa */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+                    {/* Contenido encima, no recortado en movil */}
+                    <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 text-white">
+                      <div className="flex items-center gap-3 mb-3">
+                        <img src={config.logo_url} className="h-12 w-12 md:h-16 md:w-16 rounded-full border-2 border-white shadow-lg object-cover bg-white" />
+                        <div className="flex gap-2">
+                          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-white text-zinc-900">BOUTIQUE OFICIAL</span>
+                          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-pink-600 text-white hidden md:inline-flex">FAJAS MAXICOLY</span>
+                        </div>
+                      </div>
+                      <h1 className="serif text-[28px] md:text-[44px] leading-[0.95] font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">{config.hero_titulo}</h1>
+                      <p className="mt-2 text-[13px] md:text-[15px] text-white/90 max-w-[50ch] drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{config.hero_subtitulo}</p>
+                      <div className="mt-4 flex gap-2">
+                        <a href="#catalogo" className="h-10 md:h-11 px-5 md:px-6 rounded-full bg-white text-zinc-900 text-[13px] md:text-sm font-bold flex items-center shadow">Comprar ahora →</a>
+                        <a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="h-10 md:h-11 px-5 md:px-6 rounded-full bg-zinc-900/80 backdrop-blur text-white border border-white/20 text-[13px] md:text-sm font-bold flex items-center">WhatsApp</a>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 md:p-8 min-h-[360px] md:min-h-[440px] flex flex-col justify-center">
+                    <div className="flex items-center gap-4 mb-4"><img src={config.logo_url} className="h-20 w-20 rounded-full border-2 border-white shadow-lg object-cover bg-white" /><div><div className="text-[11px] font-bold px-3 py-1 rounded-full bg-zinc-900 text-white inline-flex">BOUTIQUE OFICIAL</div><div className="mt-1 text-[11px] font-bold px-3 py-1 rounded-full bg-pink-600 text-white inline-flex">FAJAS MAXICOLY</div></div></div>
+                    <h1 className="serif text-[34px] md:text-[46px] leading-[0.9] font-bold">{config.hero_titulo.split(" ").slice(0,-2).join(" ")} <span className="text-pink-600">{config.hero_titulo.split(" ").slice(-2).join(" ")}</span></h1>
+                    <p className="mt-3 text-[14px] text-zinc-700 max-w-[50ch] font-medium">{config.hero_subtitulo}</p>
+                    <div className="mt-5 flex gap-2"><a href="#catalogo" className="h-11 px-6 rounded-full bg-zinc-900 text-white text-sm font-bold flex items-center">Comprar ahora →</a><a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="h-11 px-6 rounded-full bg-white border text-sm font-bold flex items-center shadow">WhatsApp</a></div>
+                  </div>
+                )}
               </div>
+
               <div className="col-span-12 lg:col-span-4 rounded-[28px] bg-gradient-to-br from-zinc-900 via-pink-900 to-pink-600 p-6 text-white relative overflow-hidden">
                 <div className="text-[10px] tracking-widest font-bold bg-white text-zinc-900 px-2.5 py-1 rounded-full inline-flex">MAXICOLY COLOMBIA</div>
                 <h2 className="serif mt-3 text-[26px] leading-[0.95] font-bold">{config.banner_maxicoly}</h2>
@@ -174,6 +226,7 @@ export default function App(){
             </div>
           </section>
 
+          {/* MODAL PRODUCTO CON TALLAS + AÑADIR AL CARRITO */}
           {preview && <div className="fixed inset-0 z-50 bg-black/60 flex items-end md:items-center justify-center p-0 md:p-4" onClick={()=>setPreview(null)}>
             <div className="bg-white rounded-t-[24px] md:rounded-[24px] w-full md:max-w-[460px] max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
               <div className="relative w-full flex-shrink-0 bg-zinc-50">
@@ -185,8 +238,6 @@ export default function App(){
                 <div className="text-[12px] text-zinc-500 mt-1">{preview.categoria} • STOCK {preview.stock} uds</div>
                 <div className="text-[22px] font-bold mt-2">{preview.precio}</div>
                 <div className="text-[13px] text-zinc-600 mt-2">{preview.descripcion}</div>
-                
-                {/* TALLAS SELECCIONABLES - CAMBIO PRINCIPAL 2 */}
                 <div className="mt-4">
                   <div className="text-[12px] font-bold tracking-wide">TALLA: <span className="text-pink-600">{selectedTalla}</span></div>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -194,19 +245,57 @@ export default function App(){
                       <button key={t} onClick={()=>setSelectedTalla(t)} className={`h-9 px-4 rounded-full border text-[13px] font-bold transition ${selectedTalla===t ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-900'}`}>{t}</button>
                     ))}
                   </div>
-                  <div className="mt-1 text-[11px] text-zinc-400">Selecciona tu talla antes de reservar</div>
                 </div>
-
                 <div className="mt-5 flex gap-2 pb-[env(safe-area-inset-bottom)]">
-                  <button onClick={()=>setPreview(null)} className="flex-1 h-12 rounded-full border font-bold bg-white">Cerrar</button>
-                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola! Me interesa ${preview.nombre} - Talla ${selectedTalla} - ${preview.precio}`)}`} className="flex-[1.6] h-12 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[14px]">Reservar {selectedTalla && `talla ${selectedTalla}`} →</a>
+                  <button onClick={()=>setPreview(null)} className="h-12 px-4 rounded-full border font-bold bg-white">Cerrar</button>
+                  <button onClick={()=>addToCart(preview, selectedTalla)} className="flex-[1.2] h-12 rounded-full bg-white border border-zinc-900 text-zinc-900 font-bold text-[14px]">Añadir al carrito</button>
+                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola! Me interesa ${preview.nombre} - Talla ${selectedTalla} - ${preview.precio}`)}`} className="flex-[1] h-12 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[13px]">WhatsApp →</a>
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-3 text-center">{config.direccion}</div>
               </div>
             </div>
           </div>}
 
-          <footer className="mt-12 border-t py-8 text-center text-[11px] text-zinc-500">© {new Date().getFullYear()} LAS RIKOKOTAS II S.L. • {config.direccion} • WhatsApp {config.whatsapp_display}</footer>
+          {/* CARRITO FLOTANTE PEQUEÑO */}
+          <button onClick={()=>setCartOpen(true)} className="fixed bottom-5 right-4 md:bottom-6 md:right-6 z-40 h-14 w-14 rounded-full bg-zinc-900 text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] flex items-center justify-center text-[20px] hover:scale-105 transition">
+            🛒
+            {cartCount>0 && <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-[11px] font-bold min-h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center">{cartCount}</span>}
+          </button>
+
+          {/* DRAWER CARRITO */}
+          {cartOpen && (
+            <div className="fixed inset-0 z-[60] flex justify-end">
+              <div className="flex-1 bg-black/40" onClick={()=>setCartOpen(false)} />
+              <div className="w-[92%] max-w-[380px] bg-white h-full shadow-2xl flex flex-col">
+                <div className="p-5 border-b flex justify-between items-center"><div className="font-bold text-[16px]">Carrito ({cartCount})</div><button onClick={()=>setCartOpen(false)} className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center">✕</button></div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {cart.length===0 ? <div className="text-center py-12 text-zinc-400 text-[14px]">Tu carrito está vacío<br/>Añade productos desde la tienda</div> : cart.map(item=>(
+                    <div key={item.id} className="flex gap-3 border rounded-[14px] p-3">
+                      <img src={item.product.imagen} className="w-16 h-16 rounded-lg object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12px] font-bold leading-tight truncate">{item.product.nombre}</div>
+                        <div className="text-[11px] text-zinc-500">Talla {item.talla} • {item.product.precio}</div>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <button onClick={()=>updateQty(item.id,-1)} className="h-6 w-6 rounded-full border flex items-center justify-center text-[12px]">−</button>
+                          <span className="text-[12px] font-bold w-4 text-center">{item.qty}</span>
+                          <button onClick={()=>updateQty(item.id,1)} className="h-6 w-6 rounded-full border flex items-center justify-center text-[12px]">+</button>
+                          <button onClick={()=>removeFromCart(item.id)} className="ml-auto text-[11px] text-red-500">Quitar</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {cart.length>0 && (
+                  <div className="p-4 border-t bg-zinc-50">
+                    <div className="flex justify-between text-[13px] mb-3"><span className="text-zinc-500">Total productos</span><span className="font-bold">{cartCount}</span></div>
+                    <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cartWhatsAppText()}`} className="w-full h-12 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[14px]">Reservar todo por WhatsApp →</a>
+                    <button onClick={()=>setCart([])} className="w-full mt-2 h-10 rounded-full bg-white border text-[12px]">Vaciar carrito</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <footer className="mt-12 border-t py-8 text-center text-[11px] text-zinc-500 pb-20 md:pb-8">© {new Date().getFullYear()} LAS RIKOKOTAS II S.L. • {config.direccion} • WhatsApp {config.whatsapp_display}</footer>
         </>
       ) : (
         <div className="max-w-[1280px] mx-auto px-4 py-6">
@@ -217,9 +306,10 @@ export default function App(){
               <div className="col-span-12 lg:col-span-5">
                 <div className="bg-white rounded-[20px] border p-5">
                   <h3 className="font-bold text-[16px]">Portada - Imagen y texto</h3>
+                  <p className="text-[11px] text-zinc-500">La imagen ahora se ve 100% en su color original</p>
                   <div className="mt-3 space-y-3">
                     <div><label className="text-[11px] font-bold">LOGO</label><div className="flex gap-2 mt-1"><button onClick={()=>logoFileRef.current?.click()} className="h-10 px-3 rounded-xl border bg-zinc-50 text-[12px] font-bold">📁 Subir logo local</button></div><input ref={logoFileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} /><input value={configForm.logo_url.startsWith('data:')?'[Imagen local]':configForm.logo_url} onChange={e=>setConfigForm({...configForm, logo_url:e.target.value})} className="mt-1 w-full h-10 border rounded-xl px-3 text-sm" />{configForm.logo_url && <img src={configForm.logo_url} className="mt-2 w-16 h-16 rounded-full object-cover border" />}</div>
-                    <div><label className="text-[11px] font-bold">IMAGEN DE FONDO PORTADA</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir imagen local</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar fondo y volver a blanco</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-36 object-cover rounded-xl border" />}</div>
+                    <div><label className="text-[11px] font-bold">IMAGEN DE FONDO PORTADA - 100% COLOR</label><div className="flex gap-2 mt-1"><button onClick={()=>heroFileRef.current?.click()} className="h-10 px-3 rounded-xl bg-zinc-900 text-white text-[12px] font-bold">🖼️ Subir imagen local</button><button onClick={()=>setConfigForm({...configForm, hero_imagen:""})} className="h-10 px-3 rounded-xl border text-[12px]">Quitar fondo y volver a blanco</button></div><input ref={heroFileRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFile} />{configForm.hero_imagen && <img src={configForm.hero_imagen} className="mt-2 w-full h-auto max-h-64 object-contain rounded-xl border bg-zinc-50" />}</div>
                     <input value={configForm.hero_titulo} onChange={e=>setConfigForm({...configForm, hero_titulo:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" />
                     <textarea value={configForm.hero_subtitulo} onChange={e=>setConfigForm({...configForm, hero_subtitulo:e.target.value})} rows={2} className="w-full border rounded-xl p-2 text-sm" />
                     <input value={configForm.banner_maxicoly} onChange={e=>setConfigForm({...configForm, banner_maxicoly:e.target.value})} className="w-full h-10 border rounded-xl px-3 text-sm" />
